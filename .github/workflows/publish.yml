@@ -1,0 +1,45 @@
+# Release of the public extension: runs on the public mirror only (PICODEV-SAS/picodev-lab-vscode),
+# when a release tag lands there. A store is skipped while its token secret is empty.
+name: publish
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.repository_owner == 'PICODEV-SAS'
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tag matches package.json
+        run: test "v$(node -p 'require("./package.json").version')" = "$TAG"
+      # npm test compiles first; the suite opens and ends a session on the live lab.
+      - run: xvfb-run -a npm test
+      - name: Package
+        run: |
+          echo "VSIX=picodev-lab-${TAG#v}.vsix" >> "$GITHUB_ENV"
+          npx @vscode/vsce package --out "picodev-lab-${TAG#v}.vsix"
+      - name: VS Code Marketplace
+        if: env.VSCE_PAT != ''
+        run: npx @vscode/vsce publish --packagePath "$VSIX"
+      - name: Open VSX
+        if: env.OVSX_PAT != ''
+        run: npx --yes ovsx@0 publish "$VSIX"
+      - name: Attach to the GitHub release
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --verify-tag --title "$TAG" --notes "See CHANGELOG.md."
+          gh release upload "$TAG" "$VSIX" --clobber

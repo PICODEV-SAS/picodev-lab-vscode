@@ -1,0 +1,10 @@
+# What leaves for the public mirror (PICODEV-SAS/picodev-lab-vscode): the mirror gets one commit per
+# release tag made from `git archive <tag>`, so export-ignore keeps internal files here. Keep in step
+# with .vscodeignore (what goes into the .vsix).
+AGENTS.md export-ignore
+CLAUDE.md export-ignore
+README.adoc export-ignore
+.claude export-ignore
+.agents export-ignore
+docs export-ignore
+*.vsix export-ignore
