@@ -7,6 +7,20 @@ and to Claude Code through its [picodev-lab plugin](https://github.com/PICODEV-S
 
 Everything runs in **simulation**, in your browser, powered by [Velxio](https://github.com/davidmonterocrespo24/velxio) (AGPLv3).
 
+![The agent fixes the sketch; the Picodev Lab view follows the session and the challenge's tests](media/screenshot-agent.png)
+
+*Preview (mockup, French interface): the AI agent fixes the sketch while the Picodev Lab view shows the
+session and the challenge's tests.*
+
+![The Lab panel beside the code: the simulated bench, the level's tests, the logic analyzer, the serial output](media/screenshot-lab-panel.png)
+
+*Preview (mockup): the Lab panel beside your code, with the simulated bench, the level's tests and the
+serial output.*
+
+![A level passed: share the result, open the next level](media/screenshot-challenge-passed.png)
+
+*Preview (mockup): a level passed in simulation, ready to share; the session's visibility from the palette.*
+
 ## Get started
 
 Picodev Lab needs three things; the walkthrough *Get started with Picodev Lab* (Welcome page, or the
@@ -79,3 +93,15 @@ extension's MCP declaration, declare the same server in `.vscode/mcp.json`.
 ## License
 
 Apache 2.0. Copyright 2026 Picodev SAS. [picodev.fr](https://picodev.fr)
+
+## En français
+
+Programmez un Arduino avec un agent IA, Claude Code ou Copilot, sur un **banc simulé dans votre
+navigateur** : [Picodev Lab](https://lab.picodev.fr). Sans compte, sans carte, rien à configurer :
+le serveur MCP du labo est disponible pour l'agent dès l'installation, l'extension envoie votre sketch
+à chaque enregistrement et suit la session dans sa vue, sa barre d'état et le panneau Lab.
+
+Pour commencer, suivez *Bien démarrer avec Picodev Lab* (page d'accueil, ou le lien dans la vue
+Picodev Lab) : ouvrez un dossier avec votre sketch (ou *Créer un sketch de départ*), puis *Ouvrir un
+défi* ou *Ouvrir une session*, et enfin *Donner la session à l'agent IA*. L'interface est en français
+quand VS Code l'est. Tout tourne en simulation.

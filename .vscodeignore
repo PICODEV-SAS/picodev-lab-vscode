@@ -10,6 +10,8 @@ node_modules/**
 .vscode-test/**
 tsconfig.json
 **/*.map
+# README screenshots: the Marketplace loads them from the repository (vsce rewrites the links)
+media/screenshot-*.png
 *.vsix
 .gitignore
 .gitattributes

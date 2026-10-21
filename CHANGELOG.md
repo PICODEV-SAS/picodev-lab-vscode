@@ -2,6 +2,11 @@
 
 Picodev Lab for VS Code, newest first. A version is a `vX.Y.Z` tag of this repository.
 
+## 0.7.1 (2026-10-21)
+
+- The Marketplace page shows previews of the extension at work, and a short section in French.
+- Release: the publish workflow can be run by hand for a tag (when the tag push did not start it).
+
 ## 0.7.0 (2026-10-21)
 
 - Public: the source is at [PICODEV-SAS/picodev-lab-vscode](https://github.com/PICODEV-SAS/picodev-lab-vscode),

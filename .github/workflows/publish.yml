@@ -1,10 +1,16 @@
 # Release of the public extension: runs on the public mirror only (PICODEV-SAS/picodev-lab-vscode),
-# when a release tag lands there. A store is skipped while its token secret is empty.
+# when a release tag lands there, or by hand (Actions > publish > Run workflow, with the tag) when the
+# tag push did not trigger it. A store is skipped while its token secret is empty.
 name: publish
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (vX.Y.Z), already on this repository
+        required: true
 
 permissions:
   contents: write
@@ -17,9 +23,11 @@ jobs:
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
       OVSX_PAT: ${{ secrets.OVSX_PAT }}
       GH_TOKEN: ${{ github.token }}
-      TAG: ${{ github.ref_name }}
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -35,10 +43,10 @@ jobs:
           npx @vscode/vsce package --out "picodev-lab-${TAG#v}.vsix"
       - name: VS Code Marketplace
         if: env.VSCE_PAT != ''
-        run: npx @vscode/vsce publish --packagePath "$VSIX"
+        run: npx @vscode/vsce publish --skip-duplicate --packagePath "$VSIX"
       - name: Open VSX
         if: env.OVSX_PAT != ''
-        run: npx --yes ovsx@0 publish "$VSIX"
+        run: npx --yes ovsx@0 publish --skip-duplicate "$VSIX"
       - name: Attach to the GitHub release
         run: |
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --verify-tag --title "$TAG" --notes "See CHANGELOG.md."
