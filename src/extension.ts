@@ -54,6 +54,8 @@ let busy = false;
 const told = new Set<string>(); // notifications already given for this session
 // The last read_simulation of the current run, its events kept across reads (for the view)
 let sim: Simulation | undefined;
+/** Where afterOpen wrote the bench's sketch when no folder was open: pushed from there too. */
+let sketchDir: vscode.Uri | undefined;
 let simRun: number | undefined;
 let events: Simulation['events'] = [];
 let lastT = 0;
@@ -417,13 +419,37 @@ async function open(mode: Mode, setup?: string) {
   void afterOpen();
 }
 
-/** After opening: a starter sketch when the folder has none, then the offer of a local git repo. */
+/**
+ * After opening: the folder's sketch, or else the bench's own sketch written here (the workspace root, or
+ * ~/picodev-lab/<setup> with no folder open) and opened, so that each save sends it (auto-push); then the
+ * offer of a local git repo. A file already there is never overwritten.
+ */
 async function afterOpen() {
   const found = await sketch(vscode.window.activeTextEditor?.document.uri).catch(() => undefined);
   if (found) return offerGit(found.dir);
-  if (!vscode.workspace.workspaceFolders?.length) return;
-  const make = t('Create a starter sketch');
-  if ((await vscode.window.showInformationMessage(t('No .ino in this folder yet: nothing to send to the bench.'), make)) === make) await starter();
+  const setup = status.setup ?? (await client.status().catch(() => undefined))?.setup;
+  const files = await benchFiles();
+  if (!setup || !files.some((f) => INO.test(f.name))) return;
+  if (testing && !vscode.workspace.workspaceFolders?.length) return; // the suite writes nothing in the home folder
+  const dir = vscode.workspace.workspaceFolders?.[0]?.uri ?? vscode.Uri.file(path.join(os.homedir(), 'picodev-lab', setup));
+  await vscode.workspace.fs.createDirectory(dir);
+  for (const f of files) {
+    const u = vscode.Uri.joinPath(dir, f.name);
+    if (!(await exists(u))) await vscode.workspace.fs.writeFile(u, new TextEncoder().encode(f.content));
+  }
+  sketchDir = dir;
+  await vscode.window.showTextDocument(vscode.Uri.joinPath(dir, files.find((f) => INO.test(f.name))!.name));
+  vscode.window.showInformationMessage(t('The bench\'s sketch is in {0}: edit it here, each save sends it to the bench.', dir.fsPath));
+  if (client.session) await offerGit(dir);
+}
+
+/** The sketch the bench shows (its state, once the browser has sent one), else the setup sheet's; [] if neither comes. */
+async function benchFiles(): Promise<File[]> {
+  const ok = (f: unknown): f is File => !!f && typeof (f as File).name === 'string' && typeof (f as File).content === 'string'
+    && NAME_RE.test((f as File).name) && SOURCES.test((f as File).name);
+  for (let i = 0; i < 10 && !Array.isArray(sim?.state?.files); i++) await new Promise((r) => setTimeout(r, 1000)); // the browser is opening
+  const given = Array.isArray(sim?.state?.files) ? sim!.state!.files : (await setupSheet().catch(() => undefined))?.files ?? [];
+  return (given as unknown[]).filter(ok).slice(0, 8);
 }
 
 /** The agent that gets the session: the picodevLab.agent setting; "auto" is Claude Code when it is installed. */
@@ -530,7 +556,7 @@ function onSave(doc: vscode.TextDocument) {
 /** The sketch: the folder of `uri` if it holds an .ino, else the workspace root's; its sources, the .ino first. */
 async function sketch(uri?: vscode.Uri) {
   const root = vscode.workspace.workspaceFolders?.[0]?.uri;
-  for (const dir of [uri && vscode.Uri.joinPath(uri, '..'), root]) {
+  for (const dir of [uri && vscode.Uri.joinPath(uri, '..'), root, sketchDir]) {
     if (!dir) continue;
     const names = (await vscode.workspace.fs.readDirectory(dir).then(undefined, () => []))
       .filter(([n, type]) => type === vscode.FileType.File && SOURCES.test(n))

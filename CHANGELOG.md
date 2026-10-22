@@ -2,6 +2,12 @@
 
 Picodev Lab for VS Code, newest first. A version is a `vX.Y.Z` tag of this repository.
 
+## 0.8.0 (2026-10-22)
+
+- Opening a session with no `.ino` in the folder writes the bench's sketch there (what the bench shows,
+  else the setup's starting sketch) and opens it: edit it here, each save sends it (auto-push). With no
+  folder open, it goes to `~/picodev-lab/<setup>/`. A file already there is never overwritten.
+
 ## 0.7.1 (2026-10-21)
 
 - The Marketplace page shows previews of the extension at work, and a short section in French.
