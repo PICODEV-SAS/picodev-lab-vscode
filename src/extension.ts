@@ -565,7 +565,7 @@ async function tellCopilot() {
     ? t('A Picodev Lab session is already open: session {0}, agent_token {1}. Use them with the picodev-lab tools; do not call open_session.', s.session, s.agent_token)
     : t('A Picodev Lab session is already open, and the picodev-lab tools carry it by themselves: leave out session and agent_token, and do not call open_session.');
   const ok = await chat(`${intro} ${t(
-    'The board and the libraries: read_setup with id "{0}" (board.fqbn, libraries). After each change of the sketch, compile it on this machine: arduino-cli compile --fqbn <board.fqbn> --output-dir <a temporary folder> <the sketch\'s folder>, then call push_program with hex (the text of <sketch>.ino.hex), files (all the sketch\'s files, the .ino first; 8 files, 64 KiB at most) and run: true. If the code does not compile, fix it and compile again: the lab would fail the same way. Only when the toolchain is missing (no arduino-cli, or the board\'s core or a library not installed and not installable), call push_to_editor with the same files and run: true: the lab compiles. Then read the result with read_simulation. Saving in the editor sends the sketch too, but do not count on it. In a challenge, when every test of the level is passed, say so, and call next_level if the person wants to go on; after the last level, the person finishes in the bench.',
+    'The board and the libraries: read_setup with id "{0}" (board.fqbn, libraries). After each change of the sketch, compile it on this machine: arduino-cli compile --fqbn <board.fqbn> --output-dir <a temporary folder> <the sketch\'s folder>, then call push_program with hex (the text of <sketch>.ino.hex), files (all the sketch\'s files, the .ino first; 8 files, 64 KiB at most) and run: true. If the code does not compile, fix it and compile again: the lab would fail the same way. Only when the toolchain is missing (no arduino-cli, or the board\'s core or a library not installed and not installable), call push_to_editor with the same files and run: true: the lab compiles. Then read the result with read_simulation. Saving in the editor sends the sketch too, but do not count on it. In a challenge, a test whose spec is {"type":"answer"} is passed by the person\'s answer: ask for it, then call submit_answer with session, agent_token, test and value (current level only, one call per second); ok in the result is the verdict shown in the bench. The hints in read_simulation are only those the person revealed in the bench: never guess one, ask the person to reveal one there. In a challenge, when every test of the level is passed, say so, and call next_level if the person wants to go on; after the last level, the person finishes in the bench.',
     status.setup ?? '',
   )}`);
   if (!ok) return;
@@ -1061,7 +1061,8 @@ function model() {
   // The sheet's English (i18n.en) when VS Code is not in French; a missing translation falls back to the French field
   const en = fr ? undefined : sheet?.i18n?.en;
   const lv = brief ? en?.levels?.[brief.id] : undefined;
-  const hints = lv?.hints ?? brief?.hints;
+  // Only the hints the visitor revealed in the bench (contract 0.21); the sheet's English hints no longer apply
+  const hints = brief?.hints ?? [];
   const challenge = status.mode === 'challenge';
   const share = shareOf();
   const levelText = p.level == null ? '…' : status.levels ? `${p.level + 1} / ${status.levels}` : String(p.level + 1);

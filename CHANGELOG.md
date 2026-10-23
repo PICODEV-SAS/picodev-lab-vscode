@@ -2,6 +2,13 @@
 
 Picodev Lab for VS Code, newest first. A version is a `vX.Y.Z` tag of this repository.
 
+## 0.10.0
+
+Contract 0.21, with `picodev-lab-client` 0.9.0.
+
+- The agent instructions explain `submit_answer` for tests whose spec is `{"type":"answer"}`, and that hints are only those revealed in the bench.
+- The Challenge tab lists only the hints the lab reports as revealed (`brief.hints`); the sheet's English hints are no longer used.
+
 ## 0.9.1
 
 - No change to the extension: first release published to the VS Code Marketplace through Entra ID instead of a personal access token.
