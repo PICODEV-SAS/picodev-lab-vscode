@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as path from 'path';
 import {
   Contact, File, LabClient, LabError, Mode, Session, SessionStatus, Setup, SetupSheet, Simulation,
-  SpecDraft, SpecFigure, SpecSection, ToolImage, Visibility, MAX_FIGURES, MAX_FIGURE_BYTES,
+  SpecDraft, SpecFigure, SpecSection, ToolImage, Visibility, MAX_FIGURES, MAX_FIGURE_BYTES, MAX_PROGRAM,
 } from 'picodev-lab-client';
 import { compile, Diag, findCli, parseDiagnostics, run, verdict } from './compile';
 
@@ -29,8 +29,8 @@ const SECTIONS: [id: string, fr: string, en: string][] = [
 ];
 // The view's tabs, short names (French, English)
 const TABS: [id: string, fr: string, en: string][] = [
-  ['session', 'Session', 'Session'], ['challenge', 'Défi', 'Challenge'], 
-  ['journal', 'Journal', 'Log'], ['project', 'Projet', 'Project'], ['share', 'Partage', 'Share'], // ponytail: no Bench tab until the real bench exists
+  ['session', 'Session', 'Session'], ['challenge', 'Défi', 'Challenge'], ['bench', 'Banc réel', 'Real bench'],
+  ['journal', 'Journal', 'Log'], ['project', 'Projet', 'Project'], ['share', 'Partage', 'Share'],
 ];
 const SOURCES = /\.(ino|h|hpp|c|cpp)$/i; // same set as the Claude Code plugin's hook
 const INO = /\.ino$/i;
@@ -45,7 +45,8 @@ type TestRow = { id: string; status: 'pending' | 'running' | 'passed' | 'failed'
 
 let client: LabClient;
 let secrets: vscode.SecretStorage;
-let key: string;
+let key: string; // the SecretStorage key of `folder`'s session
+let folder: vscode.WorkspaceFolder | undefined; // the session's folder: the active file's, else the first
 let item: vscode.StatusBarItem;
 let status: Partial<SessionStatus> = {}; // the last session_status, empty until the first poll
 let tests: string | undefined; // "passed/total" of the level, from the last read_simulation
@@ -81,20 +82,32 @@ let localErr = ''; // the last local compilation's errors, in the view until the
 let lastLog = ''; // the last failed compilation's log (here or in the lab), for "Ask Copilot to fix"
 let gaveCopilot = false; // the session was handed to Copilot (the view's next step)
 let stale = false; // the last session_status failed: what is shown may be old
+let mcp: vscode.McpServerDefinitionProvider<vscode.McpHttpServerDefinition>; // its headers follow the shown session
+let mcpChanged: vscode.EventEmitter<void>;
+let offers: Setup['benches'] = []; // the real bench offers of the session's setup (list_setups), read once per session
+let offersFor = '';
 const fr = vscode.env.language.startsWith('fr');
 const language = fr ? 'fr' : 'en'; // the hub's texts and the PDF's headings
 
 export async function activate(context: vscode.ExtensionContext) {
   extContext = context;
-  // Declares the lab's public MCP server, so Copilot agent mode sees it as soon as the extension is installed.
-  context.subscriptions.push(
-    vscode.lm.registerMcpServerDefinitionProvider('picodev-lab', {
-      provideMcpServerDefinitions: () => [new vscode.McpHttpServerDefinition('picodev-lab', vscode.Uri.parse(MCP_URL))],
-    }),
-  );
-
   version = context.extension.packageJSON.version;
-  client = new LabClient({ url: MCP_URL, name: 'picodev-lab-vscode', version });
+  testing = context.extensionMode === vscode.ExtensionMode.Test;
+  // the integration test's mock hub (test/run.js); never read outside a test run
+  const url = (testing && process.env.PICODEV_LAB_TEST_MCP) || MCP_URL;
+  client = new LabClient({ url, name: 'picodev-lab-vscode', version });
+  // Declares the lab's public MCP server, so Copilot agent mode sees it as soon as the extension is installed. While the
+  // active folder holds a session, its headers carry it (contract 0.20): Copilot's calls need neither session nor token.
+  mcpChanged = new vscode.EventEmitter<void>();
+  mcp = {
+    onDidChangeMcpServerDefinitions: mcpChanged.event,
+    provideMcpServerDefinitions: () => {
+      const s = client.session;
+      const headers: Record<string, string> = s ? { 'X-Lab-Session': s.session, 'X-Lab-Agent-Token': s.agent_token } : {};
+      return [new vscode.McpHttpServerDefinition('picodev-lab', vscode.Uri.parse(url), headers, version)];
+    },
+  };
+  context.subscriptions.push(mcpChanged, vscode.lm.registerMcpServerDefinitionProvider('picodev-lab', mcp));
   // ponytail: the agent log wraps the client's one entry point; session_status stays out, as in the bench's journal
   const call = client.call.bind(client);
   client.call = (name, args) => {
@@ -108,11 +121,11 @@ export async function activate(context: vscode.ExtensionContext) {
   };
   secrets = context.secrets;
   state = context.workspaceState;
-  testing = context.extensionMode === vscode.ExtensionMode.Test;
   diagnostics = vscode.languages.createDiagnosticCollection('picodevLab');
   output = vscode.window.createOutputChannel('Picodev Lab');
-  // ponytail: one session per window, keyed by its first folder; a multi-root window shares it
-  key = `picodevLab.session:${vscode.workspace.workspaceFolders?.[0]?.uri.toString() ?? ''}`;
+  // one session per workspace folder: the one shown and polled follows the active file's folder
+  folder = folderOf(vscode.window.activeTextEditor?.document.uri);
+  key = keyOf(folder);
   item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   item.show();
 
@@ -151,6 +164,10 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.window.showInformationMessage(t('Lab session ended.'));
     }),
     vscode.workspace.onDidSaveTextDocument(onSave),
+    vscode.window.onDidChangeActiveTextEditor((e) => {
+      const f = e && vscode.workspace.getWorkspaceFolder(e.document.uri);
+      if (f && !same(f, folder)) void switchTo(f).catch(report);
+    }),
     // the Project tab follows spec-projet.md, however it changes (the interview, the agent, the visitor)
     specWatch,
     specWatch.onDidCreate(readSpec), specWatch.onDidChange(readSpec), specWatch.onDidDelete(readSpec),
@@ -180,15 +197,31 @@ export async function activate(context: vscode.ExtensionContext) {
     nextOf,
     parseDiagnostics,
     verdict,
+    coalesce,
     panelHtml: () => panel?.webview.html ?? '',
     panelScripts: () => panel?.webview.options.enableScripts,
     showTab,
+    mcp,
   };
 }
 
 export function deactivate() {}
 
 class NoSession extends Error {}
+
+const keyOf = (f?: vscode.WorkspaceFolder) => `picodevLab.session:${f?.uri.toString() ?? ''}`;
+const same = (a?: vscode.WorkspaceFolder, b?: vscode.WorkspaceFolder) => a?.uri.toString() === b?.uri.toString();
+/** The workspace folder of `uri`, else the first one (none in a window with no folder). */
+const folderOf = (uri?: vscode.Uri) => (uri && vscode.workspace.getWorkspaceFolder(uri)) || vscode.workspace.workspaceFolders?.[0];
+
+/** Another folder of a multi-root window became active: its own session (or none) is shown and polled. */
+async function switchTo(f: vscode.WorkspaceFolder) {
+  const k = keyOf(f);
+  folder = f;
+  key = k;
+  const saved = await secrets.get(k);
+  if (key === k) await hold(saved ? JSON.parse(saved) : null); // unless another switch came meanwhile
+}
 
 function need(): Session {
   if (!client.session) throw new NoSession(t('No lab session: run "Picodev Lab: Open a session" first.'));
@@ -246,7 +279,10 @@ async function hold(s: Session | null) {
   lastLog = '';
   gaveCopilot = false;
   stale = false;
+  offers = [];
+  offersFor = '';
   diagnostics.clear();
+  mcpChanged.fire(); // open, close, another folder's session: Copilot's server gets the new headers
   void vscode.commands.executeCommand('setContext', 'picodevLab.session', !!s);
   postImages();
   told.clear();
@@ -280,6 +316,7 @@ async function refresh() {
       sim = undefined;
     }
     if (status.setup && status.setup !== sheetFor) void readSheet(status.setup);
+    if (status.setup && status.setup !== offersFor) readOffers(status.setup);
     // the first status, a new run or a new level: read the simulation (brief, tests); else only while watched
     if (status.run !== prev.run || status.level !== prev.level) void readTests(status.run);
     if (prev.owner && status.owner === false)
@@ -373,6 +410,7 @@ function render() {
     return;
   }
   const parts = ['$(beaker) Lab', status.setup ?? '…'];
+  if (folder && (vscode.workspace.workspaceFolders?.length ?? 0) > 1) parts.splice(1, 0, folder.name); // which folder's session
   if (status.mode === 'challenge' && status.level != null)
     parts.push(status.levels ? t('Challenge {0}/{1}', status.level + 1, status.levels) : t('Challenge {0}', status.level + 1));
   if (tests) parts.push(t('tests {0}', tests));
@@ -390,8 +428,7 @@ async function open(mode: Mode, setup?: string) {
     await client.close_session().catch(() => undefined);
   }
   if (!setup) {
-    // list_setups' i18n (architecture 0.9.1) is not in the client's Setup type yet
-    const all = await retry(() => client.list_setups() as Promise<(Setup & { i18n?: { en?: { title?: string; summary?: string } } })[]>);
+    const all = await retry(() => client.list_setups());
     if (!all) return;
     const pick = await vscode.window.showQuickPick(
       all.filter((s) => s.modes.includes(mode)).map((s) => {
@@ -430,8 +467,8 @@ async function afterOpen() {
   const setup = status.setup ?? (await client.status().catch(() => undefined))?.setup;
   const files = await benchFiles();
   if (!setup || !files.some((f) => INO.test(f.name))) return;
-  if (testing && !vscode.workspace.workspaceFolders?.length) return; // the suite writes nothing in the home folder
-  const dir = vscode.workspace.workspaceFolders?.[0]?.uri ?? vscode.Uri.file(path.join(os.homedir(), 'picodev-lab', setup));
+  if (testing && !folder) return; // the suite writes nothing in the home folder
+  const dir = folder?.uri ?? vscode.Uri.file(path.join(os.homedir(), 'picodev-lab', setup));
   await vscode.workspace.fs.createDirectory(dir);
   for (const f of files) {
     const u = vscode.Uri.joinPath(dir, f.name);
@@ -522,10 +559,15 @@ async function claudeChat(query: string) {
  */
 async function tellCopilot() {
   const s = need();
-  const ok = await chat(t(
-    'A Picodev Lab session is already open: session {0}, agent_token {1}. Use them with the picodev-lab tools; do not call open_session. The board and the libraries: read_setup with id "{2}" (board.fqbn, libraries). After each change of the sketch, compile it on this machine: arduino-cli compile --fqbn <board.fqbn> --output-dir <a temporary folder> <the sketch\'s folder>, then call push_program with session, agent_token, hex (the text of <sketch>.ino.hex), files (all the sketch\'s files, the .ino first; 8 files, 64 KiB at most) and run: true. If the code does not compile, fix it and compile again: the lab would fail the same way. Only when the toolchain is missing (no arduino-cli, or the board\'s core or a library not installed and not installable), call push_to_editor with the same files and run: true: the lab compiles. Then read the result with read_simulation. Saving in the editor sends the sketch too, but do not count on it. In a challenge, when every test of the level is passed, say so, and call next_level if the person wants to go on; after the last level, the person finishes in the bench.',
-    s.session, s.agent_token, status.setup ?? '',
-  ));
+  // Copilot gets the session from the MCP server's headers (contract 0.20); Claude Code reaches the lab through its own
+  // server, with no header: its prompt keeps the session and the token
+  const intro = claude()
+    ? t('A Picodev Lab session is already open: session {0}, agent_token {1}. Use them with the picodev-lab tools; do not call open_session.', s.session, s.agent_token)
+    : t('A Picodev Lab session is already open, and the picodev-lab tools carry it by themselves: leave out session and agent_token, and do not call open_session.');
+  const ok = await chat(`${intro} ${t(
+    'The board and the libraries: read_setup with id "{0}" (board.fqbn, libraries). After each change of the sketch, compile it on this machine: arduino-cli compile --fqbn <board.fqbn> --output-dir <a temporary folder> <the sketch\'s folder>, then call push_program with hex (the text of <sketch>.ino.hex), files (all the sketch\'s files, the .ino first; 8 files, 64 KiB at most) and run: true. If the code does not compile, fix it and compile again: the lab would fail the same way. Only when the toolchain is missing (no arduino-cli, or the board\'s core or a library not installed and not installable), call push_to_editor with the same files and run: true: the lab compiles. Then read the result with read_simulation. Saving in the editor sends the sketch too, but do not count on it. In a challenge, when every test of the level is passed, say so, and call next_level if the person wants to go on; after the last level, the person finishes in the bench.',
+    status.setup ?? '',
+  )}`);
   if (!ok) return;
   gaveCopilot = true;
   render();
@@ -549,13 +591,15 @@ function compileFailed(msg: string, log: string) {
 function onSave(doc: vscode.TextDocument) {
   if (path.basename(doc.fileName) === SPEC) void readSpec(doc.uri); // the watcher does not see a folder outside the workspace
   if (!client.session || !SOURCES.test(doc.fileName)) return;
+  const f = vscode.workspace.getWorkspaceFolder(doc.uri);
+  if (f && !same(f, folder)) return; // another folder's sketch ("save all" in a multi-root window): its own session
   if (!vscode.workspace.getConfiguration('picodevLab').get('autoPush', true)) return;
   push(doc.uri).catch(report);
 }
 
-/** The sketch: the folder of `uri` if it holds an .ino, else the workspace root's; its sources, the .ino first. */
+/** The sketch: the folder of `uri` if it holds an .ino, else the session's folder's; its sources, the .ino first. */
 async function sketch(uri?: vscode.Uri) {
-  const root = vscode.workspace.workspaceFolders?.[0]?.uri;
+  const root = folder?.uri;
   for (const dir of [uri && vscode.Uri.joinPath(uri, '..'), root, sketchDir]) {
     if (!dir) continue;
     const names = (await vscode.workspace.fs.readDirectory(dir).then(undefined, () => []))
@@ -576,7 +620,7 @@ const exists = (u: vscode.Uri) => vscode.workspace.fs.stat(u).then(() => true, (
 
 /** A starter sketch at the workspace root: the setup's files (the bench's current ones first), or a blank .ino. */
 async function starter() {
-  const dir = vscode.workspace.workspaceFolders?.[0]?.uri;
+  const dir = folder?.uri;
   if (!dir) {
     const openIt = t('Open a folder');
     if ((await vscode.window.showInformationMessage(t('Open a folder first: the sketch is written in it.'), openIt)) === openIt)
@@ -614,6 +658,27 @@ function readSheet(id: string) {
   }, () => undefined));
 }
 
+/** The real bench offers of the session's setup: list_setups' `benches`, with their status (contract 0.20). */
+function readOffers(id: string) {
+  offersFor = id;
+  client.list_setups().then((all) => {
+    if (offersFor !== id) return; // another session meanwhile
+    offers = all.find((x) => x.id === id)?.benches ?? [];
+    render();
+  }, () => (offersFor = '')); // read again at the next poll
+}
+
+/** queue_join on `kind` (one of the setup's open offers), or queue_leave: a place, or the turn, given back. */
+async function queue(kind?: string) {
+  need();
+  if (kind) {
+    const r = await client.queue_join({ kind });
+    vscode.window.setStatusBarMessage(t('In the queue of the real bench: place {0}.', r.position), 4000);
+  } else await client.queue_leave();
+  offersFor = ''; // the counts changed: read again with the status
+  void refresh();
+}
+
 /** The session's sheet, for compiling: read again once if the first read failed. */
 async function setupSheet() {
   const id = status.setup ?? (await client.status()).setup;
@@ -637,20 +702,38 @@ function cli() {
   return (cliFound ??= findCli([vscode.workspace.getConfiguration('picodevLab').get<string>('arduinoCli', '').trim(), 'arduino-cli', ...bundled]));
 }
 
-let pushing: Promise<unknown> = Promise.resolve();
-async function push(uri?: vscode.Uri) {
-  need();
+/**
+ * `fn` once per burst: the calls made while a run waits its turn (`ms` after the first, and never during another run)
+ * join it, with the last argument. Only the call that started a run gets its outcome, so an error is told once.
+ */
+function coalesce<A>(fn: (a: A) => Promise<void>, ms: number) {
+  let chain: Promise<unknown> = Promise.resolve();
+  let next: { arg: A } | undefined;
+  return (arg: A): Promise<void> => {
+    if (next) return (next.arg = arg), Promise.resolve();
+    const n = (next = { arg });
+    const run = chain.then(() => new Promise((r) => setTimeout(r, ms))).then(() => {
+      next = undefined;
+      return fn(n.arg);
+    });
+    chain = run.catch(() => undefined);
+    return run;
+  };
+}
+
+/** A push per burst ("save all" of three files: one push), the sketch read when it goes; for the session it was asked in. */
+const pushOnce = coalesce(async ({ uri, s }: { uri?: vscode.Uri; s: Session }) => {
+  if (client.session !== s) return; // the session changed meanwhile
   const found = await sketch(uri);
   if (!found) {
     const make = t('Create a starter sketch');
     const a = await vscode.window.showWarningMessage(t('No .ino next to this file nor at the workspace root: nothing was sent.'), make);
     return void (a === make && (await starter()));
   }
-  // ponytail: pushes are queued, not merged; a "save all" of three files sends the sketch three times
-  const p = pushing.then(() => send(found.dir, found.files));
-  pushing = p.catch(() => undefined);
-  await p;
-}
+  await send(found.dir, found.files);
+}, 300);
+
+const push = (uri?: vscode.Uri) => pushOnce({ uri, s: need() });
 
 async function send(dir: vscode.Uri, files: File[], toLab = false) {
   const hex = toLab ? 'lab' : await compileHere(dir, files);
@@ -696,7 +779,12 @@ async function compileHere(dir: vscode.Uri, files: File[]): Promise<string | und
     }
     if (r.exit === 0) {
       diagnostics.clear();
-      return r.hex ?? 'lab'; // built without a .hex (a board that makes none): the lab compiles
+      if (!r.hex) return 'lab'; // built without a .hex (a board that makes none): the lab compiles
+      const size = new TextEncoder().encode(r.hex).length;
+      if (size <= MAX_PROGRAM) return r.hex;
+      // as the plugin: push_program takes 48 KiB of HEX text at most, the lab compiles a bigger program
+      output.appendLine(t('Program of {0} KiB, push_program takes {1} at most: the lab compiles.', Math.ceil(size / 1024), MAX_PROGRAM / 1024));
+      return 'lab';
     }
     const v = verdict(r.exit, r.log, files.map((f) => f.name));
     if (v.kind === 'code') return void showErrors(dir, v.diags, r.log);
@@ -882,6 +970,8 @@ function onMessage(m: unknown) {
   if (type === 'specPdf') return void specAction('pdf').catch(report);
   if (type === 'specSend') return void specAction('send').catch(report);
   if (type === 'fix') return void fix();
+  if (type === 'queueLeave') return void queue().catch(report);
+  if (type === 'queueJoin' && offers.some((o) => o.kind === arg && o.status !== 'soon')) return void queue(arg as string).catch(report);
   if (type === 'log') return output.show(true);
   if (type === 'walkthrough') return void vscode.commands.executeCommand('workbench.action.openWalkthrough', 'picodev.picodev-lab#picodevLab.start', false);
   if (type === 'copy' && arg === 'viewer') return void vscode.commands.executeCommand('picodevLab.share');
@@ -929,14 +1019,19 @@ function progress() {
   };
 }
 
-/** The share of P5.3, as the Claude Code plugin: the hub's /p/ page and the proposed text. */
+// The signed share the hub gives in session_status (contract 0.20): /p/<setup>.<mode>.<levels>.<seconds>.<signature>
+const SIGNED = /^\/p\/([a-z0-9][a-z0-9-]*)\.(free|challenge)\.(\d{1,2})\.(\d{1,5})\.[A-Za-z0-9_-]{16}$/;
+
+/** The share of P5.3, as the Claude Code plugin: the hub's /p/ page (signed by the hub when it gives one) and the text. */
 function shareOf() {
   if (!client.session || !status.setup || !status.mode) return undefined;
+  const signed = SIGNED.exec(status.share ?? '');
   const p = progress();
-  if (status.mode === 'challenge' && p.levels < 1) return undefined;
-  const levels = Math.min(99, p.levels);
-  const secs = Math.min(86400, Math.round(p.seconds));
-  const link = `${LAB}${fr ? '' : '/en'}/p/${encodeURIComponent(status.setup)}.${status.mode}.${levels}.${secs}`;
+  // signed: the levels and the time the hub recorded, so that the text says what the page and its image say
+  const levels = signed ? Number(signed[3]) : Math.min(99, p.levels);
+  const secs = signed ? Number(signed[4]) : Math.min(86400, Math.round(p.seconds));
+  if (status.mode === 'challenge' && levels < 1) return undefined;
+  const link = `${LAB}${fr ? '' : '/en'}${signed ? status.share : `/p/${encodeURIComponent(status.setup)}.${status.mode}.${levels}.${secs}`}`;
   const text = status.mode === 'free'
     ? t('I programmed an Arduino on the simulated bench of Picodev Lab, driven by my agent.')
     : levels === 1
@@ -973,7 +1068,9 @@ function model() {
   const compile = sim?.compile;
   const next = challenge ? nextOf(p.all, p.level, status.levels) : null;
   // coral is the real next step, never the sales action; the line under the tabs says it in words
+  const q = status.queue; // absent from a hub older than contract 0.20
   const [main, step] = !status.owner ? ['openBench', t('Next: open the bench in your browser; it runs the simulation.')]
+    : q?.state === 'turn' ? ['openBench', t('Your turn on the real bench: it runs in the bench, in your browser.')]
     : !gaveCopilot ? ['copilot', t('Next: give the session to {0}.', agentName())]
       : next === 'next' ? ['next', t('Next: go to the next level.')]
         : next === 'last' ? ['openBench', t('Last level passed: finish in the bench.')]
@@ -1024,6 +1121,18 @@ function model() {
       origin: localErr || !compile?.origin ? '' : compile.origin === 'agent' ? t('compiled on your machine') : t('compiled by the lab'),
       log: localErr || (compile && !compile.ok ? compile.log.trim().split('\n').slice(-6).join('\n') : ''),
     },
+    bench: offers.length || (q && q.state !== 'none') ? {
+      queued: !!q && q.state !== 'none',
+      turn: q?.state === 'turn',
+      state: q?.state === 'waiting'
+        ? t('Place {0} of {1} in the queue of {2}', q.position ?? '…', q.waiting ?? '…', q.kind ?? '')
+          + (q.eta_s ? ` · ${t('about {0}', minSec(q.eta_s))}` : '')
+        : q?.state === 'turn' ? t('Your turn on {0}: {1} left.', q.kind ?? '', minSec((q.ends_at ?? 0) - Date.now() / 1000)) : '',
+      offers: offers.map((o) => ({
+        kind: o.kind, soon: o.status === 'soon',
+        text: o.status === 'soon' ? t('soon') : t('{0}/{1} free · {2} waiting', o.free, o.benches, o.waiting),
+      })),
+    } : null,
     journal,
     project: projectOf(),
     share: share ? {
@@ -1064,6 +1173,10 @@ function labels() {
     copilotCalls: t('{0}\'s own calls show in the bench\'s journal, in your browser.', agentName()),
     parts: t('Parts'), probes: t('Probes'), schemaAlt: t('Schema of the setup'),
     share: t('Share'),
+    realBench: t('Real bench'),
+    realBenchHelp: t('A real board, wired as the setup and filmed: take a turn of a few minutes, in a queue. Your program runs on it.'),
+    offers: t('Offers'), noOffer: t('No real bench for this setup.'), join: t('Join the queue'),
+    leave: t('Leave the queue'), giveBack: t('Give back the turn'), camera: t('Camera (Lab panel)'),
     project: t('Got a project?'),
     projectText: t('A circuit board, a connected device, a setup to make reliable: describe it here, in your own words, and we help you formalize it. The interview asks our engineers\' questions, one at a time, and writes the specification: what the product does, its power, its size, its environment, its production. What is still unclear is marked "to be specified".'),
     projectKeep: t('The spec stays on your machine (spec-projet.md, and a PDF). If you want, send it to Picodev: we read it and get back to you about what comes next (study, prototype, production).'),
@@ -1079,7 +1192,7 @@ function labels() {
     // short names, to fit one line of the sidebar (fixed pairs, as SECTIONS: "Share" is already the button's word);
     // the full name is the tab's title and accessible name
     tabs: Object.fromEntries(TABS.map(([id, f, e]) => [id, fr ? f : e])),
-    tabTitles: { session: t('Session'), challenge: t('Challenge'), journal: t('Calls to the lab'), project: t('Your project'), share: t('Share') },
+    tabTitles: { session: t('Session'), challenge: t('Challenge'), bench: t('Real bench'), journal: t('Calls to the lab'), project: t('Your project'), share: t('Share') },
     simIn: t('Simulation in your browser · powered by'), velxio: 'Velxio (AGPLv3)',
   };
 }

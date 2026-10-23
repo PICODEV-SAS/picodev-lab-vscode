@@ -118,6 +118,22 @@
       ], { badge: c.passed && L.passed, badgeClass: 'passed' })];
     }
 
+    // the real bench (contract 0.20): the setup's offers, the session's place or turn; the video is in the bench and the Lab panel
+    const b = m.bench;
+    if (b) {
+      const offers = Array.isArray(b.offers) ? b.offers : [];
+      tab.bench = [section('bench', L.realBench, [
+        h('p', { class: 'subtle' }, L.realBenchHelp),
+        b.state && h('p', { class: b.turn ? 'title' : null }, b.state),
+        b.turn && h('div', { class: 'actions' }, btn(L.openBench, 'openBench', null, m.main === 'openBench', L.benchHelp), btn(L.camera, 'panel')),
+        b.queued && h('div', { class: 'actions' }, btn(b.turn ? L.giveBack : L.leave, 'queueLeave')),
+        h('div', { class: 'subtle label' }, L.offers),
+        offers.length ? h('ul', { class: 'parts' }, offers.map((o) => h('li', {}, h('code', {}, o.kind), ' ', h('span', { class: 'subtle' }, o.text),
+          !b.queued && !o.soon && [' ', link(L.join, 'queueJoin', o.kind)])))
+          : h('p', { class: 'subtle' }, L.noOffer),
+      ])];
+    }
+
     const sh = m.share;
     if (sh) {
       tab.share = [section('share', L.share, [
@@ -162,7 +178,7 @@
     return tab;
   }
 
-  const TABS = ['session', 'challenge', 'journal', 'project', 'share'];
+  const TABS = ['session', 'challenge', 'bench', 'journal', 'project', 'share'];
   let tabs = ['session']; // the tabs of the current model, in order
   const current = () => {
     const t = st.tab ?? (M && M.challenge ? 'challenge' : 'session');

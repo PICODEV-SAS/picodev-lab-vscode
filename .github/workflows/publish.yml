@@ -1,6 +1,8 @@
 # Release of the public extension: runs on the public mirror only (PICODEV-SAS/picodev-lab-vscode),
 # when a release tag lands there, or by hand (Actions > publish > Run workflow, with the tag) when the
-# tag push did not trigger it. A store is skipped while its token secret is empty.
+# tag push did not trigger it. A store is skipped while its credential is missing: the Marketplace
+# takes Entra ID (OIDC, vars.AZURE_CLIENT_ID and vars.AZURE_TENANT_ID of the marketplace environment),
+# or VSCE_PAT while vars.AZURE_CLIENT_ID is empty; Open VSX takes OVSX_PAT.
 name: publish
 
 on:
@@ -14,18 +16,20 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   publish:
     if: github.repository_owner == 'PICODEV-SAS'
     runs-on: ubuntu-latest
+    environment: marketplace
     env:
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
       OVSX_PAT: ${{ secrets.OVSX_PAT }}
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag || github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: refs/tags/${{ inputs.tag || github.ref_name }}
       - uses: actions/setup-node@v4
@@ -35,14 +39,28 @@ jobs:
       - run: npm ci
       - name: Tag matches package.json
         run: test "v$(node -p 'require("./package.json").version')" = "$TAG"
-      # npm test compiles first; the suite opens and ends a session on the live lab.
+      # npm test compiles first; the suite opens and ends a session on a local mock hub.
       - run: xvfb-run -a npm test
       - name: Package
         run: |
           echo "VSIX=picodev-lab-${TAG#v}.vsix" >> "$GITHUB_ENV"
           npx @vscode/vsce package --out "picodev-lab-${TAG#v}.vsix"
-      - name: VS Code Marketplace
-        if: env.VSCE_PAT != ''
+      - name: Azure login (Entra ID, OIDC)
+        if: vars.AZURE_CLIENT_ID != ''
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+      # The member id is what the publisher's Members page takes (the identity's Azure DevOps profile,
+      # created by this first call): printed so the owner can add it, see README.adoc.
+      - name: VS Code Marketplace (Entra ID)
+        if: vars.AZURE_CLIENT_ID != ''
+        run: |
+          echo "Marketplace member id: $(az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798 --query id -o tsv)"
+          npx @vscode/vsce@3 publish --azure-credential --skip-duplicate --packagePath "$VSIX"
+      - name: VS Code Marketplace (PAT)
+        if: vars.AZURE_CLIENT_ID == '' && env.VSCE_PAT != ''
         run: npx @vscode/vsce publish --skip-duplicate --packagePath "$VSIX"
       - name: Open VSX
         if: env.OVSX_PAT != ''

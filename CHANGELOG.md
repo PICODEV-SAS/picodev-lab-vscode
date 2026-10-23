@@ -2,6 +2,26 @@
 
 Picodev Lab for VS Code, newest first. A version is a `vX.Y.Z` tag of this repository.
 
+## 0.9.0
+
+Contract 0.20, with `picodev-lab-client` 0.8.0.
+
+- Copilot gets the session from the lab's MCP server itself: the extension's server definition
+  carries it in the `X-Lab-Session` and `X-Lab-Agent-Token` headers while the active folder holds a
+  session, renewed on open, end and folder switch. *Give it to Copilot* no longer quotes the session
+  or its token in the chat; the Claude Code message still does.
+- **Real bench** tab (*Banc réel*): the setup's real bench offers (*soon* ones too), your place in
+  the queue or your turn and its remaining time, join the queue, leave it or give back the turn.
+  The camera is in the Lab panel; *Open the bench* opens it in your browser.
+- Share: the link is the one the lab signs (`share` in `session_status`), with the levels and the
+  time it recorded; a lab that gives none gets the link built as before.
+- Lab errors are told apart by the code the lab sends, no longer by their wording.
+- A program over 48 KiB of HEX is compiled by the lab, as in the Claude Code plugin, instead of failing.
+- Multi-root workspaces: one session per workspace folder; the status bar and the view follow the
+  folder of the active file, and a save pushes only to its own folder's session.
+- *Save All* pushes the sketch once: the saves of a burst share one push.
+- The integration test runs against a local mock of the lab; `PICODEV_LAB_LIVE=1` runs it on the lab.
+
 ## 0.8.0 (2026-10-22)
 
 - Opening a session with no `.ino` in the folder writes the bench's sketch there (what the bench shows,

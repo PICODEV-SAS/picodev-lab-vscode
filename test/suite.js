@@ -1,4 +1,4 @@
-// Runs inside the test VS Code: open a session on the live lab, read the status bar and the view, end the session.
+// Runs inside the test VS Code: open a session (on the mock hub, or the live lab with PICODEV_LAB_LIVE=1), read the status bar and the view, end the session.
 const assert = require('assert');
 const vscode = require('vscode');
 
@@ -44,6 +44,18 @@ exports.run = async () => {
   assert.strictEqual(api.verdict(1, 'sketch.ino.cpp.o: In function `loop\': undefined reference to `foo()\'').kind, 'code');
   assert.strictEqual(api.verdict(1, 'Error: something else').reason, 'unknown');
 
+  // pushes: one per burst ("save all"), the last argument; a call during a run queues one more, never overlapping
+  const calls = [];
+  const once = api.coalesce(async (a) => { calls.push(a); await new Promise((r) => setTimeout(r, 60)); }, 30);
+  const burst = once(1); once(2); once(3);
+  await burst;
+  assert.deepStrictEqual(calls, [3]);
+  const running = once(4);
+  await new Promise((r) => setTimeout(r, 50)); // 4 is running
+  const queued = once(5); once(6);
+  await running; await queued;
+  assert.deepStrictEqual(calls, [3, 4, 6]);
+
   const spec = api.parseSpec('# Robot\n\n## Contexte du projet\nUn robot.\n\n## Power supply\nTo be specified\n\n## preferences\nESP32\n');
   assert.deepStrictEqual(spec, { title: 'Robot', sections: { envelope: 'Un robot.', preferences: 'ESP32' }, figures: [], language: undefined });
   // contract 0.16: a figure line leaves its section's text, the contact details are their own section, the headings give the language
@@ -55,6 +67,11 @@ exports.run = async () => {
   // a figure is a .png or .svg in the spec's folder, nothing else
   assert.ok(api.figurePath('/w/p', 'spec-figures/a.png'));
   for (const bad of ['../x.png', '/etc/a.png', 'spec-figures/a.jpg', 'https://x/a.png', 'spec-figures/../../a.svg']) assert.strictEqual(api.figurePath('/w/p', bad), undefined, bad);
+
+  // contract 0.20: Copilot's server definition carries the session in its headers, renewed on open and close
+  assert.deepStrictEqual(api.mcp.provideMcpServerDefinitions()[0].headers, {});
+  let changes = 0;
+  const sub = api.mcp.onDidChangeMcpServerDefinitions(() => changes++);
 
   await vscode.commands.executeCommand('picodevLab.challenge', 'setup-a');
   await until(`status bar after open: ${api.statusText()}`, () => /setup-a/.test(api.statusText()));
@@ -69,10 +86,34 @@ exports.run = async () => {
   assert.match(text, /waiting: open the bench/);
   assert.match(text, /Challenge · level/i); // summaries are uppercased by the CSS
   // the tabs: a challenge is open, so Défi has a tab; no Sim tab (the bench shows the run); Share only once there is one
-  assert.match(text, /^Session\s+Challenge\s+Log\s+Project\s/i);
-  assert.doesNotMatch(text, /^Session\s+Challenge\s+Log\s+Project\s+(Share|Bench)\s/i);
+  assert.match(text, /^Session\s+Challenge\s+(Real bench\s+)?Log\s+Project\s/i); // Real bench: with the setup's offers
   assert.match(text, /Next: open the bench in your browser/); // the next step, coral on "Open the bench"
   assert.match(text, /Give it to Copilot/);
+
+  const [def] = api.mcp.provideMcpServerDefinitions();
+  assert.ok(changes >= 1, 'definitions changed on open');
+  assert.deepStrictEqual(Object.keys(def.headers).sort(), ['X-Lab-Agent-Token', 'X-Lab-Session']);
+  assert.match(def.headers['X-Lab-Session'], /^\w+$/);
+  assert.strictEqual(def.version, ext.packageJSON.version);
+  if (process.env.PICODEV_LAB_TEST_MCP) {
+    // the headers alone open the session's tools on the mock hub: a place in the real bench's queue, as Copilot would take it
+    assert.strictEqual(def.uri.toString(true), process.env.PICODEV_LAB_TEST_MCP);
+    const call = (name, args) => fetch(def.uri.toString(true), {
+      method: 'POST', headers: { ...def.headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
+    }).then((r) => r.json());
+    const joined = await call('queue_join', { kind: 'nano' });
+    assert.ok(!joined.result.isError, JSON.stringify(joined));
+    const without = await call('queue_status', { session: 'nope' }); // an argument wins over the header
+    assert.strictEqual(without.result._meta['lab.picodev.fr/error'], 'gone');
+    // the Real bench tab: the setup's offer, the place; the Share tab: the hub's signed share
+    await until(`real bench tab: ${text.slice(0, 400)}`, async () => /Place 1 of 1 in the queue of nano/.test((text = await api.viewText())));
+    assert.match(text, /^Session\s+Challenge\s+Real bench\s+Log\s+Project\s+Share\s/i);
+    assert.match(text, /nano\s+0\/1 free · 0 waiting/);
+    assert.match(text, /Leave the queue/);
+    assert.match(text, /lab\.picodev\.fr\/en\/p\/setup-a\.challenge\.1\.42\.A{16}/);
+    assert.match(text, /1 level passed · 42 s/);
+  }
   await api.showTab('project');
   await until(`tab after showTab: ${text.slice(-40)}`, async () => /\[tab project\]$/.test((text = await api.viewText())));
   assert.match(text, /Got a project\?/i);
@@ -103,8 +144,12 @@ exports.run = async () => {
   await vscode.commands.executeCommand('picodevLab.visibility', 'link'); // a new viewer token: a new frame
   await until('panel back to link', () => src() && src() !== first);
 
+  const before = changes;
   await vscode.commands.executeCommand('picodevLab.end');
   assert.strictEqual(api.statusText(), '$(beaker) Lab');
+  assert.ok(changes > before, 'definitions changed on close');
+  assert.deepStrictEqual(api.mcp.provideMcpServerDefinitions()[0].headers, {});
+  sub.dispose();
   await until('panel after end', () => !/<iframe/.test(api.panelHtml()));
   await until('view after end', async () => /No lab session/.test((text = await api.viewText())));
   assert.match(text, /needs three things/);

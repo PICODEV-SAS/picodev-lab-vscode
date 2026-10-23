@@ -50,7 +50,9 @@ the bench (`push_program`). arduino-cli is looked for in the `picodevLab.arduino
 on the `PATH`, then in the Arduino extension.
 
 - **The lab compiles** only when the toolchain is missing: no arduino-cli, or the board's core or a
-  library not installed (the extension offers once per session to install them).
+  library not installed (the extension offers once per session to install them), or when the
+  program is over 48 KiB of HEX.
+- **One push per burst**: a *Save All* of several sketch files sends the sketch once.
 - **A code error is not sent**: the errors go to the Problems panel and the view, with *Show log*
   and *Ask the agent to fix* (Claude Code or Copilot).
 - You always know which way your code went: *compiled on your machine* or *compiled by the lab*.
@@ -64,9 +66,11 @@ pushed to a git host. Turn it off with `picodevLab.git`.
 ## What else
 
 - **Status bar**: `Lab · setup-a · Challenge 2/4 · tests 2/3 · 2 viewers`; a click opens the view.
+- **Multi-root workspaces**: one session per workspace folder; the status bar and the view follow
+  the folder of the active file (its name shows in the status bar).
 - **The view**: the session and the setup (its schema, parts and probes, the last compilation), the
-  challenge (brief, tests, hints, next level), the calls to the lab, your project, and sharing your
-  result (LinkedIn, X). What the simulation does is in the bench, in your browser.
+  challenge (brief, tests, hints, next level), the real bench (its offers, your place in the queue
+  and your turn), the calls to the lab, your project, and sharing your result (LinkedIn, X). What the simulation does is in the bench, in your browser.
 - **The Lab panel**: the session's spectator page beside your code (it needs a viewer link).
 - **Your project** (its own tab): say what you want to make, and Picodev helps you formalize it.
   The interview (here, or by the AI agent) writes `spec-projet.md`; the tab follows its sections, makes
@@ -83,7 +87,8 @@ pushed to a git host. Turn it off with `picodevLab.git`.
 ## Your data
 
 The session (its id, the agent's token, the bench's link) is kept in VS Code's secret storage,
-never in your project, and forgotten when it ends. The lab never reads your disk: the extension
+never in your project, and forgotten when it ends. Copilot gets it from the lab's MCP server
+declaration, in its headers, not in the chat. The lab never reads your disk: the extension
 sends it your sketch's files (8 files, 64 KiB at most) and the compiled program. Privacy policy:
 https://lab.picodev.fr/en/privacy
 
