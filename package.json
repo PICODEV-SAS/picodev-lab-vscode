@@ -2,7 +2,7 @@
   "name": "picodev-lab",
   "displayName": "Picodev Lab",
   "description": "Plugs Copilot agent mode into Picodev Lab: a simulated Arduino bench in your browser, driven through the lab's MCP server. Compiles your sketch on your machine with arduino-cli.",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "publisher": "picodev",
   "icon": "media/logo.png",
   "license": "Apache-2.0",

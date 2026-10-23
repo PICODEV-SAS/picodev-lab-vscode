@@ -2,6 +2,10 @@
 
 Picodev Lab for VS Code, newest first. A version is a `vX.Y.Z` tag of this repository.
 
+## 0.9.1
+
+- No change to the extension: first release published to the VS Code Marketplace through Entra ID instead of a personal access token.
+
 ## 0.9.0
 
 Contract 0.20, with `picodev-lab-client` 0.8.0.
