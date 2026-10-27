@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" fill="none" font-family="monospace" font-size="10">
+<!-- Animated with SMIL: the walkthrough's CSP drops this <style>, which only serves viewers that allow it. -->
+<style>@media (prefers-reduced-motion:reduce){.m{transform:none!important}.o{opacity:1!important}}</style>
+<clipPath id="f"><rect width="400" height="250" rx="6"/></clipPath>
+<g clip-path="url(#f)">
+  <rect width="400" height="250" fill="var(--vscode-terminal-background, var(--vscode-panel-background, #1e1e1e))"/>
+  <rect width="400" height="20" fill="var(--vscode-titleBar-activeBackground, #3c3c3c)"/>
+  <rect x="160" y="7" width="80" height="6" rx="3" fill="var(--vscode-foreground, #cccccc)" opacity=".35"/>
+  <text x="16" y="36" font-family="sans-serif" font-size="9" fill="var(--vscode-foreground, #cccccc)">TERMINAL</text>
+  <rect x="16" y="41" width="46" height="1.5" fill="var(--vscode-panelTitle-activeBorder, #e7e7e7)"/>
+  <!-- the command, typed -->
+  <text x="16" y="64" fill="var(--vscode-terminal-foreground, #cccccc)"><tspan fill="var(--vscode-terminal-ansiGreen, #0dbc79)">$</tspan> arduino-cli compile -b arduino:avr:uno .</text>
+  <g class="m">
+    <animateTransform attributeName="transform" type="translate" values="-242 0;-242 0;0 0;0 0" keyTimes="0;.06;.3;1" dur="7s" repeatCount="indefinite"/>
+    <rect x="270" y="52" width="250" height="16" fill="var(--vscode-terminal-background, var(--vscode-panel-background, #1e1e1e))"/>
+  </g>
+  <!-- its output -->
+  <g fill="var(--vscode-descriptionForeground, #9d9d9d)">
+    <text class="o" x="16" y="84">Sketch uses 924 bytes (2%) of program storage space.<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.36;.37;.95;1" dur="7s" repeatCount="indefinite"/></text>
+    <text class="o" x="16" y="98">Global variables use 9 bytes (0%) of dynamic memory.<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.4;.41;.95;1" dur="7s" repeatCount="indefinite"/></text>
+  </g>
+  <g class="o">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.46;.48;.95;1" dur="7s" repeatCount="indefinite"/>
+    <path d="M17 116l3.5 3.5 6-7" stroke="var(--vscode-terminal-ansiGreen, #0dbc79)" stroke-width="1.8"/>
+    <text x="32" y="120" fill="var(--vscode-terminal-ansiGreen, #0dbc79)">sketch.ino.hex</text>
+  </g>
+  <!-- the sketch stays here; only the program goes to the lab -->
+  <path d="M24 156h14l6 6v20H24z" stroke="var(--vscode-foreground, #cccccc)" stroke-width="1.4"/>
+  <text x="34" y="200" font-size="8" text-anchor="middle" fill="var(--vscode-descriptionForeground, #9d9d9d)">sketch.ino</text>
+  <path d="M60 172h240" stroke="var(--vscode-descriptionForeground, #9d9d9d)" stroke-dasharray="4 4"/>
+  <rect x="312" y="150" width="70" height="44" rx="5" fill="#0A2440" stroke="var(--vscode-foreground, #cccccc)" stroke-opacity=".4"/>
+  <rect x="334" y="164" width="26" height="16" rx="2" fill="#071A30" stroke="#9FB0C4"/>
+  <circle cx="372" cy="160" r="3.5" fill="#E7746F"/>
+  <text x="347" y="208" font-size="8" text-anchor="middle" fill="var(--vscode-descriptionForeground, #9d9d9d)">lab.picodev.fr</text>
+  <g class="m o">
+    <animateTransform attributeName="transform" type="translate" values="-226 0;-226 0;0 0;0 0" keyTimes="0;.55;.78;1" calcMode="spline" keySplines="0 0 1 1;.4 0 .2 1;0 0 1 1" dur="7s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.53;.56;.95;1" dur="7s" repeatCount="indefinite"/>
+    <rect x="270" y="163" width="34" height="18" rx="3" fill="var(--vscode-button-background, #0e639c)" stroke="var(--vscode-button-border, transparent)"/>
+    <text x="287" y="175.5" font-size="9" text-anchor="middle" fill="var(--vscode-button-foreground, #ffffff)">HEX</text>
+  </g>
+</g>
+<rect x=".5" y=".5" width="399" height="249" rx="6" stroke="var(--vscode-panel-border, #80808059)"/>
+</svg>

@@ -2,6 +2,12 @@
 
 Picodev Lab for VS Code, newest first. A version is a `vX.Y.Z` tag of this repository.
 
+## 0.11.0
+
+- Each step of the *Get started with Picodev Lab* walkthrough shows its own animated picture
+  (opening the sketch, picking a setup, the bench in the browser, the agent's chat, the local
+  compilation) instead of the logo. They follow the colour theme, light, dark or high contrast.
+
 ## 0.10.0
 
 Contract 0.21, with `picodev-lab-client` 0.9.0.

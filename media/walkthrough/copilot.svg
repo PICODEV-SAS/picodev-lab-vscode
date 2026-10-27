@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" fill="none" font-family="sans-serif" font-size="10">
+<!-- Animated with SMIL: the walkthrough's CSP drops this <style>, which only serves viewers that allow it. -->
+<style>@media (prefers-reduced-motion:reduce){.m{transform:none!important}.o{opacity:1!important}.x{opacity:0!important}}</style>
+<clipPath id="f"><rect width="400" height="250" rx="6"/></clipPath>
+<g clip-path="url(#f)">
+  <rect width="400" height="250" fill="var(--vscode-sideBar-background, #252526)"/>
+  <rect width="400" height="20" fill="var(--vscode-titleBar-activeBackground, #3c3c3c)"/>
+  <rect x="160" y="7" width="80" height="6" rx="3" fill="var(--vscode-foreground, #cccccc)" opacity=".35"/>
+  <!-- the agent's chat -->
+  <path d="M18 25q1 5 6 6-5 1-6 6-1-5-6-6 5-1 6-6z" fill="#E7746F"/>
+  <rect x="32" y="28.5" width="60" height="5" rx="2.5" fill="var(--vscode-foreground, #cccccc)" opacity=".6"/>
+  <!-- the message, sent -->
+  <g class="o">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.3;.34;.95;1" dur="7s" repeatCount="indefinite"/>
+    <rect x="150" y="46" width="238" height="34" rx="6" fill="var(--vscode-input-background, #3c3c3c)"/>
+    <rect x="160" y="55" width="200" height="5" rx="2.5" fill="var(--vscode-foreground, #cccccc)" opacity=".7"/>
+    <rect x="160" y="66" width="130" height="5" rx="2.5" fill="var(--vscode-foreground, #cccccc)" opacity=".7"/>
+  </g>
+  <!-- the agent writes the code... -->
+  <g class="o">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.4;.43;.95;1" dur="7s" repeatCount="indefinite"/>
+    <path d="M18 91q1 5 6 6-5 1-6 6-1-5-6-6 5-1 6-6z" fill="#E7746F"/>
+    <rect x="34" y="88" width="354" height="52" rx="4" fill="var(--vscode-editor-background, #1e1e1e)" stroke="var(--vscode-panel-border, #80808059)"/>
+  </g>
+  <g font-family="monospace" fill="var(--vscode-editor-foreground, #d4d4d4)">
+    <text class="o" x="44" y="103">digitalWrite(13, HIGH);<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.45;.48;.95;1" dur="7s" repeatCount="indefinite"/></text>
+    <text class="o" x="44" y="117">delay(500);<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.5;.53;.95;1" dur="7s" repeatCount="indefinite"/></text>
+    <text class="o" x="44" y="131">digitalWrite(13, LOW);<animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.55;.58;.95;1" dur="7s" repeatCount="indefinite"/></text>
+  </g>
+  <!-- ...then sends it to the lab and reads the simulation -->
+  <g font-family="monospace" font-size="9">
+    <g class="o">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.64;.67;.95;1" dur="7s" repeatCount="indefinite"/>
+      <rect x="34.5" y="150.5" width="96" height="18" rx="9" fill="var(--vscode-input-background, #3c3c3c)" stroke="var(--vscode-panel-border, #80808059)"/>
+      <text x="44" y="162.5" fill="var(--vscode-foreground, #cccccc)">push_program</text>
+      <path d="M113 159.5l3 3 5-6" stroke="var(--vscode-testing-iconPassed, #73c991)" stroke-width="1.6"/>
+    </g>
+    <g class="o">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.74;.77;.95;1" dur="7s" repeatCount="indefinite"/>
+      <rect x="138.5" y="150.5" width="112" height="18" rx="9" fill="var(--vscode-input-background, #3c3c3c)" stroke="var(--vscode-panel-border, #80808059)"/>
+      <text x="148" y="162.5" fill="var(--vscode-foreground, #cccccc)">read_simulation</text>
+      <path d="M233 159.5l3 3 5-6" stroke="var(--vscode-testing-iconPassed, #73c991)" stroke-width="1.6"/>
+    </g>
+  </g>
+  <!-- the chat input, prefilled by the extension -->
+  <rect x="10.5" y="194.5" width="379" height="44" rx="6" fill="var(--vscode-input-background, #3c3c3c)" stroke="var(--vscode-focusBorder, #007fd4)"/>
+  <g class="x" opacity="0">
+    <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;.04;.28;.3;1" dur="7s" repeatCount="indefinite"/>
+    <g transform="translate(22 205)">
+      <g class="m">
+        <animateTransform attributeName="transform" type="scale" values="0 1;0 1;1 1;1 1" keyTimes="0;.05;.14;1" dur="7s" repeatCount="indefinite"/>
+        <rect width="220" height="5" rx="2.5" fill="var(--vscode-input-foreground, #cccccc)" opacity=".8"/>
+        <rect y="12" width="140" height="5" rx="2.5" fill="var(--vscode-input-foreground, #cccccc)" opacity=".8"/>
+      </g>
+    </g>
+  </g>
+  <rect x="360" y="206" width="22" height="22" rx="4" fill="var(--vscode-button-background, #0e639c)" stroke="var(--vscode-button-border, transparent)"/>
+  <path d="M366 217h10m-4-4l4 4-4 4" stroke="var(--vscode-button-foreground, #ffffff)" stroke-width="1.6"/>
+  <rect class="x" x="357" y="203" width="28" height="28" rx="6" opacity="0" stroke="var(--vscode-focusBorder, #007fd4)" stroke-width="2">
+    <animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;.26;.28;.33;1" dur="7s" repeatCount="indefinite"/>
+  </rect>
+</g>
+<rect x=".5" y=".5" width="399" height="249" rx="6" stroke="var(--vscode-panel-border, #80808059)"/>
+</svg>

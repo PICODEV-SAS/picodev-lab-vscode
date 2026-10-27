@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" fill="none" font-family="sans-serif" font-size="11">
+<!-- Animated with SMIL: the walkthrough's CSP drops this <style>, which only serves viewers that allow it. -->
+<style>@media (prefers-reduced-motion:reduce){.m{transform:none!important}.o{opacity:1!important}.x{opacity:0!important}}</style>
+<clipPath id="f"><rect width="400" height="250" rx="6"/></clipPath>
+<g clip-path="url(#f)">
+  <rect width="400" height="250" fill="var(--vscode-editor-background, #1e1e1e)"/>
+  <rect width="400" height="20" fill="var(--vscode-titleBar-activeBackground, #3c3c3c)"/>
+  <rect x="160" y="7" width="80" height="6" rx="3" fill="var(--vscode-foreground, #cccccc)" opacity=".35"/>
+  <!-- the setup: a board and the parts wired to it -->
+  <g class="o">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.36;.42;.95;1" dur="6s" repeatCount="indefinite"/>
+    <rect x="58" y="62" width="180" height="124" rx="8" fill="#0A2440" stroke="var(--vscode-foreground, #cccccc)" stroke-opacity=".4"/>
+    <rect x="50" y="80" width="20" height="26" rx="2" fill="#9FB0C4"/>
+    <g fill="#C9D3E0" opacity=".7">
+      <rect x="110" y="68" width="6" height="6"/><rect x="122" y="68" width="6" height="6"/><rect x="134" y="68" width="6" height="6"/>
+      <rect x="146" y="68" width="6" height="6"/><rect x="158" y="68" width="6" height="6"/><rect x="170" y="68" width="6" height="6"/>
+      <rect x="182" y="68" width="6" height="6"/><rect x="194" y="68" width="6" height="6"/><rect x="206" y="68" width="6" height="6"/>
+      <rect x="226" y="98" width="6" height="6"/><rect x="226" y="123" width="6" height="6"/><rect x="226" y="148" width="6" height="6"/>
+    </g>
+    <rect x="118" y="116" width="70" height="28" rx="2" fill="#071A30"/>
+    <path d="M124 116v-4m10 4v-4m10 4v-4m10 4v-4m10 4v-4m10 4v-4M124 144v4m10-4v4m10-4v4m10-4v4m10-4v4m10-4v4" stroke="#9FB0C4"/>
+    <circle cx="80" cy="166" r="4" fill="#E7746F"/>
+    <rect x="270" y="72" width="80" height="104" rx="4" fill="var(--vscode-input-background, #3c3c3c)" stroke="var(--vscode-panel-border, #80808059)"/>
+    <path d="M232 101h64M232 126h64M232 151h64" stroke="var(--vscode-textLink-foreground, #3794ff)" stroke-width="2"/>
+    <g fill="var(--vscode-foreground, #cccccc)" opacity=".25"><circle cx="310" cy="101" r="7"/><circle cx="310" cy="126" r="7"/><circle cx="310" cy="151" r="7"/></g>
+  </g>
+  <!-- the LEDs light one after the other -->
+  <g class="o" fill="#E7746F">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.46;.49;.95;1" dur="6s" repeatCount="indefinite"/>
+    <circle cx="310" cy="101" r="12" opacity=".3"/><circle cx="310" cy="101" r="7"/>
+  </g>
+  <g class="o" fill="#E7746F">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.54;.57;.95;1" dur="6s" repeatCount="indefinite"/>
+    <circle cx="310" cy="126" r="12" opacity=".3"/><circle cx="310" cy="126" r="7"/>
+  </g>
+  <g class="o" fill="#E7746F">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.62;.65;.95;1" dur="6s" repeatCount="indefinite"/>
+    <circle cx="310" cy="151" r="12" opacity=".3"/><circle cx="310" cy="151" r="7"/>
+  </g>
+  <!-- the setup picker: two challenges and a free session; the second row is picked -->
+  <g class="x" opacity="0">
+    <animate attributeName="opacity" values="1;1;0;0;1" keyTimes="0;.3;.36;.95;1" dur="6s" repeatCount="indefinite"/>
+    <rect x="70" y="30" width="260" height="112" rx="6" fill="var(--vscode-quickInput-background, #252526)" stroke="var(--vscode-panel-border, #80808059)"/>
+    <rect x="78" y="38" width="244" height="20" rx="2" fill="var(--vscode-input-background, #3c3c3c)" stroke="var(--vscode-focusBorder, #007fd4)"/>
+    <rect x="86" y="45.5" width="70" height="5" rx="2.5" fill="var(--vscode-foreground, #cccccc)" opacity=".5"/>
+    <g class="m">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 24;0 24" keyTimes="0;.14;.2;1" dur="6s" repeatCount="indefinite"/>
+      <rect x="74" y="63" width="252" height="22" rx="3" fill="var(--vscode-list-activeSelectionBackground, #04395e)" stroke="var(--vscode-contrastActiveBorder, transparent)"/>
+    </g>
+    <g fill="var(--vscode-foreground, #cccccc)">
+      <path d="M84 68v12m0-11h9l-2 3 2 3h-9" stroke="var(--vscode-foreground, #cccccc)" stroke-width="1.4"/>
+      <rect x="102" y="71.5" width="120" height="5" rx="2.5" opacity=".8"/>
+      <circle cx="298" cy="74" r="2.5" fill="#E7746F"/><circle cx="306" cy="74" r="2.5" opacity=".4"/><circle cx="314" cy="74" r="2.5" opacity=".4"/>
+      <path d="M84 92v12m0-11h9l-2 3 2 3h-9" stroke="var(--vscode-foreground, #cccccc)" stroke-width="1.4"/>
+      <rect x="102" y="95.5" width="90" height="5" rx="2.5" opacity=".8"/>
+      <circle cx="298" cy="98" r="2.5" opacity=".4"/><circle cx="306" cy="98" r="2.5" opacity=".4"/><circle cx="314" cy="98" r="2.5" opacity=".4"/>
+      <rect x="82" y="115" width="12" height="9" rx="1.5" stroke="var(--vscode-foreground, #cccccc)" stroke-width="1.4" fill="none"/>
+      <rect x="102" y="119.5" width="104" height="5" rx="2.5" opacity=".8"/>
+    </g>
+  </g>
+</g>
+<rect x=".5" y=".5" width="399" height="249" rx="6" stroke="var(--vscode-panel-border, #80808059)"/>
+</svg>

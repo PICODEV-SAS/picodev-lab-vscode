@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250" fill="none" font-family="sans-serif" font-size="11">
+<!-- Animated with SMIL: the walkthrough's CSP drops this <style>, which only serves viewers that allow it. -->
+<style>@media (prefers-reduced-motion:reduce){.m{transform:none!important}.o{opacity:1!important}.x{opacity:0!important}}</style>
+<clipPath id="f"><rect width="400" height="250" rx="6"/></clipPath>
+<g clip-path="url(#f)">
+  <rect width="400" height="250" fill="var(--vscode-editor-background, #1e1e1e)"/>
+  <rect width="400" height="20" fill="var(--vscode-titleBar-activeBackground, #3c3c3c)"/>
+  <rect x="160" y="7" width="80" height="6" rx="3" fill="var(--vscode-foreground, #cccccc)" opacity=".35"/>
+  <!-- activity bar and explorer -->
+  <rect y="20" width="32" height="230" fill="var(--vscode-activityBar-background, #333333)"/>
+  <path d="M10 31h8l4 4v12H10z" stroke="var(--vscode-activityBar-foreground, #ffffff)" stroke-width="1.5"/>
+  <circle cx="15" cy="65" r="4.5" stroke="var(--vscode-activityBar-foreground, #ffffff)" stroke-width="1.5" opacity=".45"/>
+  <path d="M18.5 68.5l4 4" stroke="var(--vscode-activityBar-foreground, #ffffff)" stroke-width="1.5" opacity=".45"/>
+  <rect x="32" y="20" width="118" height="230" fill="var(--vscode-sideBar-background, #252526)"/>
+  <rect x="42" y="30" width="48" height="5" rx="2.5" fill="var(--vscode-foreground, #cccccc)" opacity=".5"/>
+  <!-- "Open a folder" button: gone once clicked -->
+  <g class="x" opacity="0">
+    <animate attributeName="opacity" values="1;1;0;0;1" keyTimes="0;.33;.38;.95;1" dur="6s" repeatCount="indefinite"/>
+    <rect x="42" y="50" width="98" height="22" rx="2" fill="var(--vscode-button-background, #0e639c)" stroke="var(--vscode-button-border, transparent)"/>
+    <path d="M51 56h5l2 2h7v8H51z" fill="var(--vscode-button-foreground, #ffffff)"/>
+    <rect x="72" y="58.5" width="56" height="5" rx="2.5" fill="var(--vscode-button-foreground, #ffffff)" opacity=".8"/>
+  </g>
+  <!-- the opened folder and its sketch -->
+  <g class="o">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.38;.44;.95;1" dur="6s" repeatCount="indefinite"/>
+    <path d="M41 56l3.5 3.5L48 56" stroke="var(--vscode-foreground, #cccccc)" stroke-width="1.3"/>
+    <path d="M52 54h4l1.5 1.5H64v7.5H52z" fill="var(--vscode-descriptionForeground, #9d9d9d)"/>
+    <text x="69" y="63" fill="var(--vscode-foreground, #cccccc)">blink</text>
+  </g>
+  <g class="o">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.43;.49;.95;1" dur="6s" repeatCount="indefinite"/>
+    <rect x="32" y="70" width="118" height="18" fill="var(--vscode-list-activeSelectionBackground, #04395e)" stroke="var(--vscode-contrastActiveBorder, transparent)"/>
+    <rect x="56" y="73.5" width="9" height="11" rx="1.5" fill="var(--vscode-textLink-foreground, #3794ff)"/>
+    <text x="70" y="83" fill="var(--vscode-list-activeSelectionForeground, var(--vscode-foreground, #ffffff))">sketch.ino</text>
+  </g>
+  <!-- editor -->
+  <rect x="150" y="20" width="250" height="24" fill="var(--vscode-editorGroupHeader-tabsBackground, #252526)"/>
+  <g class="o">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.5;.55;.95;1" dur="6s" repeatCount="indefinite"/>
+    <rect x="150" y="20" width="86" height="24" fill="var(--vscode-tab-activeBackground, #1e1e1e)"/>
+    <text x="161" y="36" font-size="10" fill="var(--vscode-tab-activeForeground, #ffffff)">sketch.ino</text>
+  </g>
+  <g font-family="monospace" font-size="10" fill="var(--vscode-editor-foreground, #d4d4d4)">
+    <g class="o">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.55;.62;.95;1" dur="6s" repeatCount="indefinite"/>
+      <text x="162" y="64"><tspan fill="var(--vscode-textLink-foreground, #3794ff)">void</tspan> setup() {</text>
+      <text x="174" y="78">pinMode(13, OUTPUT);</text>
+      <text x="162" y="92">}</text>
+    </g>
+    <g class="o">
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;.63;.7;.95;1" dur="6s" repeatCount="indefinite"/>
+      <text x="162" y="112"><tspan fill="var(--vscode-textLink-foreground, #3794ff)">void</tspan> loop() {</text>
+      <text x="174" y="126">digitalWrite(13, HIGH);</text>
+      <text x="174" y="140">delay(500);</text>
+      <text x="162" y="154">}</text>
+    </g>
+  </g>
+  <!-- pointer: comes in, clicks the button -->
+  <circle class="x" cx="126" cy="57" r="14" opacity="0" stroke="var(--vscode-focusBorder, #007fd4)" stroke-width="2">
+    <animate attributeName="r" values="2;2;14;14" keyTimes="0;.32;.42;1" dur="6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;0;.8;0;0" keyTimes="0;.31;.32;.42;1" dur="6s" repeatCount="indefinite"/>
+  </circle>
+  <g transform="translate(126 57)">
+    <g class="m o">
+      <animateTransform attributeName="transform" type="translate" values="190 130;190 130;0 0;0 0" keyTimes="0;.08;.3;1" calcMode="spline" keySplines="0 0 1 1;.4 0 .2 1;0 0 1 1" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.06;.92;1" dur="6s" repeatCount="indefinite"/>
+      <path d="M0 0v16l4-4 3 7 3-1.3-3-6.7h5.5z" fill="var(--vscode-foreground, #cccccc)" stroke="var(--vscode-editor-background, #1e1e1e)" stroke-linejoin="round"/>
+    </g>
+  </g>
+</g>
+<rect x=".5" y=".5" width="399" height="249" rx="6" stroke="var(--vscode-panel-border, #80808059)"/>
+</svg>
