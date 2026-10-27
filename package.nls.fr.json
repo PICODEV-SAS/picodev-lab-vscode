@@ -14,6 +14,7 @@
   "command.next": "Niveau suivant",
   "command.panel": "Ouvrir le panneau Lab (page spectateur)",
   "command.starter": "Créer un sketch de départ",
+  "command.walkthrough": "Bien démarrer",
   "config.arduinoCli": "Chemin d'`arduino-cli`, pour compiler le sketch sur votre poste. Vide : `arduino-cli` du PATH, sinon celui fourni avec l'extension Arduino. Sans lui, le labo compile le sketch.",
   "config.git": "Propose un dépôt git local pour le sketch à l'ouverture d'une session, et un commit après chaque envoi réussi. Rien n'est envoyé à un hébergeur git.",
   "walkthrough.title": "Bien démarrer avec Picodev Lab",

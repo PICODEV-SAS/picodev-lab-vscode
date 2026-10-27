@@ -2,6 +2,11 @@
 
 Picodev Lab for VS Code, newest first. A version is a `vX.Y.Z` tag of this repository.
 
+## 0.11.1
+
+- The *Get started with Picodev Lab* walkthrough opens once by itself, the first time the extension
+  starts (also after an update), and from the palette with *Picodev Lab: Get started*.
+
 ## 0.11.0
 
 - Each step of the *Get started with Picodev Lab* walkthrough shows its own animated picture

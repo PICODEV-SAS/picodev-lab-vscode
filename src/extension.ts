@@ -144,6 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
     { dispose: () => clearInterval(timer) },
     vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration('picodevLab.arduinoCli') && (cliFound = undefined)),
     cmd('picodevLab.starter', starter),
+    cmd('picodevLab.walkthrough', () => vscode.commands.executeCommand('workbench.action.openWalkthrough', 'picodev.picodev-lab#picodevLab.start', false)),
     vscode.window.registerWebviewViewProvider('picodevLab.view', { resolveWebviewView: (v) => resolveView(v, context.extensionUri) }),
     cmd('picodevLab.open', (setup?: string) => open('free', setup)),
     cmd('picodevLab.challenge', (setup?: string) => open('challenge', setup)),
@@ -178,6 +179,10 @@ export async function activate(context: vscode.ExtensionContext) {
   if (pending && vscode.workspace.workspaceFolders?.[0]?.uri.toString() === pending.dir) {
     void context.globalState.update('picodevLab.pending', undefined);
     void (pending.then === 'interview' ? copilotInterview() : brief()).catch(report);
+  } else if (!testing && !context.globalState.get('picodevLab.welcomed')) {
+    // VS Code opens a walkthrough only on some fresh installs, never on update: once per user, here
+    void context.globalState.update('picodevLab.welcomed', true);
+    void vscode.commands.executeCommand('picodevLab.walkthrough');
   }
 
   const saved = await secrets.get(key);
@@ -973,7 +978,7 @@ function onMessage(m: unknown) {
   if (type === 'queueLeave') return void queue().catch(report);
   if (type === 'queueJoin' && offers.some((o) => o.kind === arg && o.status !== 'soon')) return void queue(arg as string).catch(report);
   if (type === 'log') return output.show(true);
-  if (type === 'walkthrough') return void vscode.commands.executeCommand('workbench.action.openWalkthrough', 'picodev.picodev-lab#picodevLab.start', false);
+  if (type === 'walkthrough') return void vscode.commands.executeCommand('picodevLab.walkthrough');
   if (type === 'copy' && arg === 'viewer') return void vscode.commands.executeCommand('picodevLab.share');
   const sh = shareOf();
   if (type === 'copy' && arg === 'share' && sh)
